@@ -64,6 +64,7 @@ async def google_login(request: Request):  # noqa: PLR0915
 
     microsoft_client_id = os.getenv("MICROSOFT_CLIENT_ID", None)
     google_client_id = os.getenv("GOOGLE_CLIENT_ID", None)
+    github_client_id = os.getenv("GITHUB_CLIENT_ID", None)
     generic_client_id = os.getenv("GENERIC_CLIENT_ID", None)
 
     ####### Check if UI is disabled #######
@@ -121,6 +122,25 @@ async def google_login(request: Request):  # noqa: PLR0915
         )
         with google_sso:
             return await google_sso.get_login_redirect()
+    # GitHub SSO Auth
+    elif github_client_id is not None:
+        from fastapi_sso.sso.github import GithubSSO
+        github_client_secret = os.getenv("GITHUB_CLIENT_SECRET", None)
+        if github_client_secret is None:
+            raise ProxyException(
+                message="GITHUB_CLIENT_SECRET not set. Set it in .env file",
+                type=ProxyErrorTypes.auth_error,
+                param="GITHUB_CLIENT_SECRET",
+                code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        github_sso = GithubSSO(
+            client_id=github_client_id,
+            client_secret=github_client_secret,
+            redirect_uri=redirect_url,
+        )
+        with github_sso:
+            return await github_sso.get_login_redirect()
+        
     # Microsoft SSO Auth
     elif microsoft_client_id is not None:
         from fastapi_sso.sso.microsoft import MicrosoftSSO
@@ -426,6 +446,7 @@ async def auth_callback(request: Request):  # noqa: PLR0915
     microsoft_client_id = os.getenv("MICROSOFT_CLIENT_ID", None)
     google_client_id = os.getenv("GOOGLE_CLIENT_ID", None)
     generic_client_id = os.getenv("GENERIC_CLIENT_ID", None)
+    github_client_id = os.getenv("GITHUB_CLIENT_ID", None)
     # get url from request
     if master_key is None:
         raise ProxyException(
@@ -485,6 +506,23 @@ async def auth_callback(request: Request):  # noqa: PLR0915
             allow_insecure_http=True,
         )
         result = await microsoft_sso.verify_and_process(request)
+    elif github_client_id is not None:
+        from fastapi_sso.sso.github import GithubSSO
+
+        github_client_secret = os.getenv("GITHUB_CLIENT_SECRET", None)
+        if github_client_secret is None:
+            raise ProxyException(
+                message="GITHUB_CLIENT_SECRET not set. Set it in .env file",
+                type=ProxyErrorTypes.auth_error,
+                param="GITHUB_CLIENT_SECRET",
+                code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        github_sso = GithubSSO(
+            client_id=github_client_id,
+            client_secret=github_client_secret,
+            redirect_uri=redirect_url,
+        )
+        result = await github_sso.verify_and_process(request)
     elif generic_client_id is not None:
         result = await get_generic_sso_response(
             request=request,
