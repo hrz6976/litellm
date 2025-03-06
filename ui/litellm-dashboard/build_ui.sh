@@ -1,7 +1,25 @@
 #!/bin/bash
 
+set -e
+
+# Specify the destination directory
+destination_dir="../../litellm/proxy/_experimental/out"
+# If the destination directory does not exist, create it
+if [ ! -d "$destination_dir" ]; then
+  mkdir -p "$destination_dir"
+else
+# Skip the build if the destination directory is not empty
+  if [ "$(ls -A $destination_dir)" ]; then
+    echo "Destination directory is not empty. Build aborted."
+    exit 0
+  fi
+fi
+
 # Check if nvm is not installed
 if ! command -v nvm &> /dev/null; then
+  # Touch the .bashrc file to create it if it does not exist
+  touch ~/.bashrc
+
   # Install nvm
   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
 
@@ -20,8 +38,13 @@ if [ $? -ne 0 ]; then
 fi
 
 # print contents of ui_colors.json
-echo "Contents of ui_colors.json:"
-cat ui_colors.json
+if [ -f "ui_colors.json" ]; then
+  echo "Contents of ui_colors.json:"
+  cat ui_colors.json
+fi
+
+# Run npm install
+npm install
 
 # Run npm build
 npm run build
@@ -29,13 +52,6 @@ npm run build
 # Check if the build was successful
 if [ $? -eq 0 ]; then
   echo "Build successful. Copying files..."
-
-  # echo current dir
-  echo
-  pwd
-
-  # Specify the destination directory
-  destination_dir="../../litellm/proxy/_experimental/out"
 
   # Remove existing files in the destination directory
   rm -rf "$destination_dir"/*
