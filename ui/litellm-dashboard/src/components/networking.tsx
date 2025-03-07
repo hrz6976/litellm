@@ -3,11 +3,7 @@
  */
 import { message } from "antd";
 
-const isLocal = process.env.NODE_ENV === "development";
-export const proxyBaseUrl = isLocal ? "http://localhost:4000" : null;
-if (isLocal != true) {
-  console.log = function() {};
-}
+export const proxyBaseUrl = process.env.NEXT_PUBLIC_PROXY_BASE_URL;
 
 export const DEFAULT_ORGANIZATION = "default_organization";
 

@@ -40,11 +40,7 @@ import {
 } from "./networking";
 import { start } from "repl";
 console.log("process.env.NODE_ENV", process.env.NODE_ENV);
-const isLocal = process.env.NODE_ENV === "development";
-const proxyBaseUrl = isLocal ? "http://localhost:4000" : null;
-if (isLocal !== true) {
-  console.log = function() {};
-}
+const proxyBaseUrl = process.env.NEXT_PUBLIC_PROXY_BASE_URL;
 
 interface UsagePageProps {
   accessToken: string | null;

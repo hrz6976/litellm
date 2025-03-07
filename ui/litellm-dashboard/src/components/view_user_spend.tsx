@@ -23,11 +23,7 @@ import {
 } from "@tremor/react";
 import { Statistic } from "antd"
 import { spendUsersCall, modelAvailableCall }  from "./networking";
-const isLocal = process.env.NODE_ENV === "development";
-const proxyBaseUrl = isLocal ? "http://localhost:4000" : null;
-if (isLocal != true) {
-  console.log = function() {};
-}
+const proxyBaseUrl = process.env.NEXT_PUBLIC_PROXY_BASE_URL;
 
 // Define the props type
 interface UserSpendData {

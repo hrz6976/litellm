@@ -96,12 +96,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     Record<string, string>
   >>(null);
 
-  const isLocal = process.env.NODE_ENV === "development";
-  if (isLocal != true) {
-    console.log = function() {};
-  }
-
-  const baseUrl = useBaseUrl();
+  const baseUrl = process.env.NEXT_PUBLIC_PROXY_BASE_URL;
   const all_ip_address_allowed = "All IP Addresses Allowed";
 
   let nonSssoUrl = baseUrl;

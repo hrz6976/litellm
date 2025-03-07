@@ -25,8 +25,7 @@ const Navbar: React.FC<NavbarProps> = ({
   premiumUser,
   proxySettings,
 }) => {
-  const isLocal = process.env.NODE_ENV === "development";
-  const imageUrl = isLocal ? "http://localhost:4000/get_image" : "/get_image";
+  const imageUrl = `${process.env.NEXT_PUBLIC_PROXY_BASE_URL}/get_image`;
   let logoutUrl = proxySettings?.PROXY_LOGOUT_URL || "";
 
   const handleLogout = () => {

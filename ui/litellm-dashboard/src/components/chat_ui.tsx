@@ -45,14 +45,7 @@ async function generateModelResponse(
   accessToken: string
 ) {
   // base url should be the current base_url
-  const isLocal = process.env.NODE_ENV === "development";
-  if (isLocal !== true) {
-    console.log = function () {};
-  }
-  console.log("isLocal:", isLocal);
-  const proxyBaseUrl = isLocal
-    ? "http://localhost:4000"
-    : window.location.origin;
+  const proxyBaseUrl = process.env.NEXT_PUBLIC_PROXY_BASE_URL;
   const client = new openai.OpenAI({
     apiKey: accessToken, // Replace with your OpenAI API key
     baseURL: proxyBaseUrl, // Replace with your OpenAI API base URL

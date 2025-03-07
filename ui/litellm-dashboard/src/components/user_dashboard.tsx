@@ -22,12 +22,7 @@ import { Team } from "./key_team_helpers/key_list";
 import { jwtDecode } from "jwt-decode";
 import { Typography } from "antd";
 import { clearTokenCookies } from "@/utils/cookieUtils";
-const isLocal = process.env.NODE_ENV === "development";
-if (isLocal != true) {
-  console.log = function() {};
-}
-console.log("isLocal:", isLocal);
-const proxyBaseUrl = isLocal ? "http://localhost:4000" : null;
+const proxyBaseUrl = process.env.NEXT_PUBLIC_PROXY_BASE_URL;
 
 export interface ProxySettings {
   PROXY_BASE_URL: string | null;
@@ -306,7 +301,20 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
       : `/sso/key/generate`;
     
     console.log("Full URL:", url);
-    window.location.href = url;
+    // // sleep 10s
+    // setTimeout(() => {
+    //   window
+    //     .open(url, "_self")
+    //     .focus();
+    // }
+    // , 10000);
+    // window.location.href = url;
+
+    // sleep 10s and redirect
+    setTimeout(() => {
+      window.location.href = url;
+    }
+    , 10000);
 
     return null;
   } else if (accessToken == null) {

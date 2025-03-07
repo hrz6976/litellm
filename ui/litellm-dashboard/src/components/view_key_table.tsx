@@ -72,11 +72,7 @@ import { KeyResponse } from "./key_team_helpers/key_list";
 import { AllKeysTable } from "./all_keys_table";
 import { Team } from "./key_team_helpers/key_list";
 
-const isLocal = process.env.NODE_ENV === "development";
-const proxyBaseUrl = isLocal ? "http://localhost:4000" : null;
-if (isLocal != true) {
-  console.log = function () {};
-}
+const proxyBaseUrl = process.env.NEXT_PUBLIC_PROXY_BASE_URL;
 
 interface EditKeyModalProps {
   visible: boolean;

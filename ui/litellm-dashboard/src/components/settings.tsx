@@ -34,11 +34,7 @@ import {
 import { Modal, Typography, Form, Input, Select, Button as Button2, message } from "antd";
 
 const { Title, Paragraph } = Typography;
-const isLocal = process.env.NODE_ENV === "development";
-const proxyBaseUrl = isLocal ? "http://localhost:4000" : null;
-if (isLocal != true) {
-  console.log = function() {};
-}
+const proxyBaseUrl = process.env.NEXT_PUBLIC_PROXY_BASE_URL;
 import {
   getCallbacksCall,
   setCallbacksCall,
