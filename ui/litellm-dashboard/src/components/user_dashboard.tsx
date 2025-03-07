@@ -301,20 +301,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
       : `/sso/key/generate`;
     
     console.log("Full URL:", url);
-    // // sleep 10s
-    // setTimeout(() => {
-    //   window
-    //     .open(url, "_self")
-    //     .focus();
-    // }
-    // , 10000);
-    // window.location.href = url;
-
-    // sleep 10s and redirect
-    setTimeout(() => {
-      window.location.href = url;
-    }
-    , 10000);
+    window.location.href = url;
 
     return null;
   } else if (accessToken == null) {
