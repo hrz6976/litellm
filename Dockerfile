@@ -1,29 +1,48 @@
+ARG LITELLM_WEB_IMAGE=node:18-alpine
 # Base image for building
 ARG LITELLM_BUILD_IMAGE=cgr.dev/chainguard/python:latest-dev
-
 # Runtime image
 ARG LITELLM_RUNTIME_IMAGE=cgr.dev/chainguard/python:latest-dev
+
+FROM $LITELLM_WEB_IMAGE AS web-builder
+
+# Install deps
+WORKDIR /app
+COPY ./ui/litellm-dashboard/package.json /app/package.json
+COPY ./ui/litellm-dashboard/package-lock.json /app/package-lock.json
+RUN npm ci
+
+# Build the app
+COPY ./ui/litellm-dashboard /app
+RUN npm run build
+
 # Builder stage
 FROM $LITELLM_BUILD_IMAGE AS builder
 
 # Set the working directory to /app
 WORKDIR /app
-
 USER root
 
 # Install build dependencies
 RUN apk update && \
     apk add --no-cache gcc python3-dev openssl openssl-dev
 
-
 RUN pip install --upgrade pip && \
     pip install build
 
 # Copy the current directory contents into the container at /app
-COPY . .
+COPY requirements.txt .
+
+# Download dependencies
+RUN pip wheel --no-cache-dir --wheel-dir=/wheels/ -r requirements.txt
 
 # Build Admin UI
-RUN chmod +x docker/build_admin_ui.sh && ./docker/build_admin_ui.sh
+COPY --from=web-builder /app/out /app/litellm/proxy/_experimental/out
+
+# Copy the current directory contents into the container at /app
+COPY pyproject.toml poetry.lock README.md ./
+COPY enterprise ./enterprise
+COPY litellm ./litellm
 
 # Build the package
 RUN rm -rf dist/* && python -m build
@@ -34,9 +53,6 @@ RUN ls -1 dist/*.whl | head -1
 # Install the package
 RUN pip install dist/*.whl
 
-# install dependencies as wheels
-RUN pip wheel --no-cache-dir --wheel-dir=/wheels/ -r requirements.txt
-
 # install semantic-cache [Experimental]- we need this here and not in requirements.txt because redisvl pins to pydantic 1.0 
 RUN pip install redisvl==0.0.7 --no-deps
 
@@ -44,9 +60,6 @@ RUN pip install redisvl==0.0.7 --no-deps
 RUN pip uninstall jwt -y
 RUN pip uninstall PyJWT -y
 RUN pip install PyJWT==2.9.0 --no-cache-dir
-
-# Build Admin UI
-RUN chmod +x docker/build_admin_ui.sh && ./docker/build_admin_ui.sh
 
 # Runtime stage
 FROM $LITELLM_RUNTIME_IMAGE AS runtime
