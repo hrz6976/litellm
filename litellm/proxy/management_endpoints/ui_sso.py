@@ -576,6 +576,8 @@ async def auth_callback(request: Request):  # noqa: PLR0915
     default_ui_key_values: Dict[str, Any] = {
         "duration": "24hr",
         "key_max_budget": litellm.max_ui_session_budget,
+        "key_budget_duration": litellm.max_ui_session_budget_duration,
+        "rpm_limit": litellm.max_ui_session_rpm,
         "aliases": {},
         "config": {},
         "spend": 0,

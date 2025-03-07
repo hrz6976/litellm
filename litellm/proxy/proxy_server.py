@@ -7185,6 +7185,8 @@ async def login(request: Request):  # noqa: PLR0915
                     "user_role": LitellmUserRoles.PROXY_ADMIN,
                     "duration": "24hr",
                     "key_max_budget": litellm.max_ui_session_budget,
+                    "key_budget_duration": litellm.max_ui_session_budget_duration,
+                    "rpm_limit": litellm.max_ui_session_rpm,
                     "models": [],
                     "aliases": {},
                     "config": {},
