@@ -329,6 +329,7 @@ from fastapi.routing import APIRouter
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.security.api_key import APIKeyHeader
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 # import enterprise folder
 try:
@@ -704,7 +705,6 @@ except Exception:
 # # Mount this test directory instead
 # app.mount("/ui", StaticFiles(directory=ui_path, html=True), name="ui")
 
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -712,6 +712,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["*"])
 
 
 from typing import Dict
