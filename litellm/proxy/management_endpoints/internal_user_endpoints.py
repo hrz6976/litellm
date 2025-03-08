@@ -1096,3 +1096,104 @@ async def ui_view_users(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error searching users: {str(e)}")
+
+@router.post(
+    "/user/webhook",
+    tags=["Internal User management"],
+)
+@management_endpoint_wrapper
+async def handle_openwebui_webhook(
+    request: Request,
+):
+    """
+    This endpoint is used to handle webhooks from OpenWebUI
+    No authorization required, only use in trusted environments
+    """
+    try:
+        # parse request body as json
+        body = await request.json()
+        action = body.get("action")
+        message = body.get("message")
+        user = body.get("user")
+        verbose_proxy_logger.debug(f"Received webhook: {action} - {message} - {user}")
+        if action == 'signup':
+            # Send a welcome email to the user
+            import json
+            from litellm.proxy.proxy_server import (
+                general_settings,
+                prisma_client,
+            )
+            from litellm.proxy.management_endpoints.key_management_endpoints import generate_key_helper_fn
+            from litellm.proxy.utils import send_email
+
+            if prisma_client is None:
+                raise HTTPException(status_code=500, detail="Webhook listener requires a database connection")
+
+            user_obj = json.loads(user)
+            user_id = user_obj["id"]
+            user_email = user_obj["email"]
+
+            # Check for duplicate email
+            await _check_duplicate_user_email(user_email, prisma_client)
+            # here we have a unlimited key
+            new_user_resp = await generate_key_helper_fn(
+                user_id=user_id,
+                user_email=user_email,
+                request_type="user",
+                models=[],
+                max_budget=general_settings.get("user_max_budget", 1000),
+                budget_duration=general_settings.get("user_budget_duration", "1mo"),
+                key_alias="ApiKey"
+            )
+            verbose_proxy_logger.debug(f"New user created: {new_user_resp}")
+            # create webkey
+            new_key_resp = await generate_key_helper_fn(
+                user_id=user_id,
+                user_email=user_email,
+                request_type="key",
+                models=[],
+                rpm_limit=general_settings.get("webkey_rpm_limit", 300),
+                key_alias="WebKey"
+            )
+            verbose_proxy_logger.debug(f"New key created: {new_key_resp}")
+
+            # prepare email template
+            import os
+            import jinja2
+            EMAIL_TITLE = os.getenv("EMAIL_TITLE", "Welcome to LLMWeb")
+            EMAIL_TEMPLATE = os.getenv("EMAIL_TEMPLATE", None)
+
+            if os.path.isfile(EMAIL_TEMPLATE):
+                with open(EMAIL_TEMPLATE, "r") as f:
+                    EMAIL_TEMPLATE = f.read()
+            if not EMAIL_TEMPLATE:
+                EMAIL_TEMPLATE = """
+                <p>您好，您的LLMWeb账号已经创建成功！</p>
+                <p>邮箱: {{ email }}</p>
+                <p>API Key (不限速): {{ api_key }}</p>
+                <p>API Key: {{ web_key }}</p>
+                <a href="https://llm.osslab-pku.org">Web UI</a>
+                <a href="https://llm.osslab-pku.org/ui">查看余额</a>
+                """
+
+            await send_email(
+                receiver_email=user_email,
+                subject=jinja2.Template(EMAIL_TITLE).render(
+                    email=user_email
+                ),
+                html=jinja2.Template(EMAIL_TEMPLATE).render(
+                    email=user_email,
+                    api_key=new_user_resp["token"],
+                    web_key=new_key_resp["token"],
+                    webkey_rpm_limit=general_settings.get("webkey_rpm_limit", ''),
+                    user_max_budget=general_settings.get("user_max_budget", ''),
+                    user_budget_duration=general_settings.get("user_budget_duration", ''),
+                )
+            )
+            return {"status": "success"}
+        else:
+            raise HTTPException(status_code=400, detail="Invalid action")
+    except Exception as e:
+        import logging
+        logging.exception(f"Error handling webhook: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error handling webhook")
