@@ -571,6 +571,13 @@ async def _user_api_key_auth_builder(  # noqa: PLR0915
         end_user_params = {}
 
         end_user_id = get_end_user_id_from_request_body(request_data)
+
+        # Open WebUI Header Bypass
+        # get headers
+        if _owui_user_id := request.headers.get("X-OpenWebUI-User-Id", None):
+            end_user_id = _owui_user_id
+            verbose_proxy_logger.debug(f"Open WebUI Header Bypass - end_user_id={end_user_id}")
+
         if end_user_id:
             try:
                 end_user_params["end_user_id"] = end_user_id
@@ -615,15 +622,26 @@ async def _user_api_key_auth_builder(  # noqa: PLR0915
         # note: never string compare api keys, this is vulenerable to a time attack. Use secrets.compare_digest instead
         ## Check CACHE
         try:
-            valid_token = await get_key_object(
-                hashed_token=hash_token(api_key),
-                prisma_client=prisma_client,
-                user_api_key_cache=user_api_key_cache,
-                parent_otel_span=parent_otel_span,
-                proxy_logging_obj=proxy_logging_obj,
-                check_cache_only=True,
-            )
-        except Exception:
+            # overwrite api_key if _owui_user_id is not None
+            valid_token = None
+            if _owui_user_id is not None:
+                from litellm.proxy.management_endpoints.key_management_endpoints import _list_key_helper
+                _valid_keys = await _list_key_helper(prisma_client, 1, 5, user_id=_owui_user_id, key_alias="WebKey", return_full_object=True)
+                if len(_valid_keys["keys"]) > 0:
+                    valid_token: UserAPIKeyAuth = _valid_keys["keys"][0]
+                    verbose_proxy_logger.debug(f"Open WebUI Header Bypass - valid_token={valid_token.key_name}")
+            if valid_token is None:
+                valid_token = await get_key_object(
+                    hashed_token=hash_token(api_key),
+                    prisma_client=prisma_client,
+                    user_api_key_cache=user_api_key_cache,
+                    parent_otel_span=parent_otel_span,
+                    proxy_logging_obj=proxy_logging_obj,
+                    check_cache_only=True,
+                )
+        except Exception as e:
+            import logging
+            logging.exception(e)
             verbose_logger.debug("api key not found in cache.")
             valid_token = None
 
