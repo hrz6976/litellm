@@ -7119,6 +7119,7 @@ async def login(request: Request):  # noqa: PLR0915
     form = await request.form()
     username = str(form.get("username"))
     password = str(form.get("password"))
+    import os
     ui_username = os.getenv("UI_USERNAME", "admin")
     ui_password = os.getenv("UI_PASSWORD", None)
     if ui_password is None:
@@ -7229,6 +7230,11 @@ async def login(request: Request):  # noqa: PLR0915
         litellm_dashboard_ui += "?userID=" + user_id
         redirect_response = RedirectResponse(url=litellm_dashboard_ui, status_code=303)
         redirect_response.set_cookie(key="token", value=jwt_token)
+        # read admin_2fa from envvar
+        import os
+        _env_var = os.environ.get("ADMIN_SECRET", None)
+        if _env_var is not None:
+            redirect_response.set_cookie(key="admin_2fa", value=_env_var, expires=86400)
         return redirect_response
     elif _user_row is not None:
         """
