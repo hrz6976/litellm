@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { keyDeleteCall, getTotalSpendCall } from "./networking";
+import { keyDeleteCall, getTotalSpendCall, userSpendLogsCall } from "./networking";
 import { StatusOnlineIcon, TrashIcon } from "@heroicons/react/outline";
 import { Accordion, AccordionHeader, AccordionList, DonutChart } from "@tremor/react";
 import {
@@ -22,7 +22,7 @@ import {
 
 } from "@tremor/react";
 import { Statistic } from "antd"
-import { spendUsersCall, modelAvailableCall }  from "./networking";
+import { spendUsersCall, modelAvailableCall, userInfoCall }  from "./networking";
 const proxyBaseUrl = process.env.NEXT_PUBLIC_PROXY_BASE_URL;
 
 // Define the props type
@@ -85,6 +85,22 @@ const ViewUserSpend: React.FC<ViewUserSpendProps> = ({ userID, userRole, accessT
       const fetchData = async () => {
         if (!accessToken || !userID || !userRole) {
           return;
+        }
+
+        const response = await userInfoCall(
+          accessToken,
+          userID,
+          userRole,
+          false,
+          null,
+          null
+        );
+
+        if (response) {
+          const spend  = response["user_info"]["spend"];
+          setSpend(spend);
+          const max_budget = response["user_info"]["max_budget"];
+          setMaxBudget(max_budget);
         }
       };
       const fetchUserModels = async () => {
